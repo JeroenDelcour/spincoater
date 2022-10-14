@@ -1,13 +1,15 @@
-from machine import Pin, I2C, Timer
+from machine import Pin, I2C, Timer, UART
 import time
 import uasyncio
 
 import ssd1306
 from rotary_irq_esp import RotaryIRQ
+from dshot import Dshot
 
 # using default address 0x3c
 i2c = I2C(1, sda=Pin(21), scl=Pin(22))
 display = ssd1306.SSD1306_I2C(128, 64, i2c)
+display.rotate(0)
 
 
 # def splash():
@@ -69,8 +71,8 @@ def deposit_view(state, rotary):
     display.fill_rect(0, 0, 127, 14, 1)
     display.text("Deposit", 36, 3, 0)
     draw_rpm(state["rpm"])
-    display.text("Press to", 32, 45, 1)
-    display.text("continue", 32, 55, 1)
+    display.text("Press to", 32, 42, 1)
+    display.text("continue", 32, 52, 1)
 
 
 def coating_view(state, rotary):
@@ -80,13 +82,23 @@ def coating_view(state, rotary):
     display.text("{: >{w}} sec".format(state["timer"], w=4), 30, 48, 1)
 
 
+def handle_ESC_telemetry(data):
+    # if data is None:
+    #     return
+    print(data)
+
+
 async def update():
     global state
     global rotary
+    global dshot
+    global uart
     while True:
         display.fill(0)
         state["view"](state, rotary)
         display.show()
+        dshot.set_throttle(state["throttle"])
+        handle_ESC_telemetry(uart.read())
         await uasyncio.sleep_ms(33)
 
 
@@ -102,9 +114,11 @@ def on_button_press(p):
         return
     global state
     global rotary
+    global dshot
     if state["view"] == start_view:
         if rotary.value() == 0:
             state["view"] = deposit_view
+            state["throttle"] = 0.02
             return
         if rotary.value() == 1:
             state["view"] = edit_deposit_view
@@ -167,15 +181,18 @@ def start_coating(state):
 
     timer2.init(period=1000, mode=Timer.PERIODIC, callback=decrement_timer)
 
+    state["throttle"] = 0.10
+
 
 def stop_coating():
     global state
     global rotary
     global timer1
     global timer2
+    dshot.set_throttle(0)
     timer1.deinit()
     timer2.deinit()
-    state["timer"] = 0
+    state["throttle"] = 0
     rotary.set(min_val=0, max_val=1, range_mode=RotaryIRQ.RANGE_BOUNDED, value=0)
     state["view"] = start_view
 
@@ -195,6 +212,10 @@ rotary = RotaryIRQ(
 button = Pin(19, Pin.IN, Pin.PULL_UP)
 button.irq(trigger=Pin.IRQ_FALLING, handler=on_button_press)
 
+dshot = Dshot(pin=Pin(18))
+
+uart = UART(1, baudrate=115200, bits=8, tx=17, rx=5, flow=0)
+
 state = {
     "view": start_view,
     "rpm": 0,
@@ -202,6 +223,7 @@ state = {
     "deposit_rpm": 500,
     "coating_rpm": 6000,
     "coating_time": 10,
+    "throttle": 0,
 }
 
 event_loop = uasyncio.get_event_loop()
