@@ -22,7 +22,7 @@ class Dshot:
         self._arm()
         self._enable_telemetry()
 
-    def _arm(self, duration=3):
+    def _arm(self, duration=2):
         """
         Send arming sequence.
 
@@ -35,27 +35,23 @@ class Dshot:
             # time.sleep(0.01)
 
     def _enable_telemetry(self):
-        # for i in range(6):
-        #     value = self._create_packet(13)
-        #     print(bin(value))
-        #     self._send(value)
+        for i in range(6):
+            value = self._create_packet(33)
+            self._send(value)
         for i in range(6):
             value = self._create_packet(34)
-            print(bin(value))
             self._send(value)
-        # for i in range(6):
-        #     value = self._create_packet(34)
-        #     print(bin(value))
-        #     self._send(value)
-        # for i in range(6):
-        #     value = self._create_packet(35)
-        #     print(bin(value))
-        #     self._send(value)
+        for i in range(6):
+            value = self._create_packet(35)
+            self._send(value)
         for i in range(6):
             value = self._create_packet(12)
-            print(bin(value))
             self._send(value)
         time.sleep(0.040)
+
+        # for i in range(10):
+        #     self._send(self._create_packet(6))
+        #     time.sleep(0.012)
 
         # self._send(self._create_packet(42))
         # self._send(self._create_packet(43))

@@ -88,10 +88,7 @@ def coating_view(state, rotary):
 
 
 def handle_ESC_telemetry(data):
-    if data is None:
-        return
     print("Telemetry: ", data)
-    pass
 
 
 async def update():
@@ -104,7 +101,8 @@ async def update():
         state["view"](state, rotary)
         display.show()
         dshot.set_throttle(state["throttle"])
-        handle_ESC_telemetry(uart.read())
+        if uart.any():
+            handle_ESC_telemetry(uart.read())
         await uasyncio.sleep_ms(33)
 
 
@@ -220,7 +218,7 @@ button.irq(trigger=Pin.IRQ_FALLING, handler=on_button_press)
 
 dshot = Dshot(pin=Pin(18))
 
-uart = UART(1, baudrate=115200, bits=8, tx=17, rx=5, flow=0)
+uart = UART(1, baudrate=115200, bits=8, tx=27, rx=5)
 
 state = {
     "view": start_view,
