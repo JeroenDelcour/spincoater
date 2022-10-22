@@ -70,11 +70,11 @@ class Dshot:
         # 11 bit throttle: 2048 possible values.
         # 0 is reserved for disarmed. 1-47 are reserved for special commands.
         # Leaving 48 to 2047 (2000 steps) for the actual throttle value
-        value = min(max(value, 0), 1)  # clamp to between 0 and 1
+        value = min(max(value, 0.0), 1.0)  # clamp to between 0 and 1
         if value == 0:
             value = 0  # disarmed
         else:
-            value = int(value * 2000 + 47)
+            value = int(value * 1999 + 48)
         return value
 
     def set_throttle(self, value: float, telemetry=True):

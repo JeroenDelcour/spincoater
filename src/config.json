@@ -1,0 +1,10 @@
+{
+  "PID": {
+    "Kp": 1e-5,
+    "Ki": 1e-4,
+    "Kd": 0
+  },
+  "deposit_rpm": 1000,
+  "coating_rpm": 2000,
+  "coating_time": 10
+}
