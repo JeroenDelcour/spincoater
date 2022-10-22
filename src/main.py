@@ -69,7 +69,7 @@ def edit_coating_time_view(state, rotary):
 
 
 def draw_rpm(rpm):
-    display.text("RPM:{: >{w}}".format(rpm, w=5), 30, 27, 1)
+    display.text("RPM:{: >{w}.0f}".format(rpm, w=5), 30, 27, 1)
 
 
 def deposit_view(state, rotary):
@@ -87,8 +87,29 @@ def coating_view(state, rotary):
     display.text("{: >{w}} sec".format(state["timer"], w=4), 30, 48, 1)
 
 
-def handle_ESC_telemetry(data):
-    print("Telemetry: ", data)
+def decode_ESC_telemetry(data, motor_poles=14):
+    temperature = int(data[0])  # degrees Celsius
+    voltage = int((data[1] << 8) | data[2]) * 0.01  # Volt
+    current = (
+        int((data[3] << 8) | data[4]) * 0.01
+    )  # Amps, only available if the ESC has a current meter
+    consumption = int(
+        (data[5] << 8) | data[6]
+    )  # mAh, only available if the ESC has a current meter
+    erpm = int((data[7] << 8) | data[8]) * 100
+    rpm = erpm / (motor_poles / 2)
+    crc = data[9]
+
+    print("         Temp (C):", temperature)
+    print("      Voltage (V):", voltage)
+    print("      Current (A):", current)
+    print("Consumption (mAh):", consumption)
+    print("             Erpm:", erpm)
+    print("              RPM:", rpm)
+    print("              CRC:", crc)
+    print()
+
+    return temperature, voltage, current, consumption, erpm, rpm
 
 
 async def update():
@@ -101,8 +122,10 @@ async def update():
         state["view"](state, rotary)
         display.show()
         dshot.set_throttle(state["throttle"])
-        if uart.any():
-            handle_ESC_telemetry(uart.read())
+        if uart.any() >= 10:
+            telemetry = decode_ESC_telemetry(uart.read())
+            if telemetry is not None:
+                state["rpm"] = telemetry[5]
         await uasyncio.sleep_ms(33)
 
 
@@ -218,7 +241,7 @@ button.irq(trigger=Pin.IRQ_FALLING, handler=on_button_press)
 
 dshot = Dshot(pin=Pin(18))
 
-uart = UART(1, baudrate=115200, bits=8, tx=27, rx=5)
+uart = UART(1, baudrate=115200, rx=5)
 
 state = {
     "view": start_view,
