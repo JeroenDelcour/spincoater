@@ -1,10 +1,8 @@
 from machine import Pin, I2C, Timer, UART
-import time
 import uasyncio
 import json
 
 import ssd1306
-import config
 from rotary_irq_esp import RotaryIRQ
 from dshot import Dshot
 from pid import PID
